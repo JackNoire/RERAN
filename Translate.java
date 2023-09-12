@@ -34,6 +34,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class Translate
@@ -56,15 +58,15 @@ public class Translate
 		int sameCounter = 0;
 		boolean allEventsValid = false;
 		
-		File wd = new File("/bin");
+		// File wd = new File("/bin");
 				
-		try 
-		{
-			procReplay = Runtime.getRuntime().exec("/bin/bash", null, wd);
-		}
-		catch (IOException e) {e.printStackTrace();}
+		// try 
+		// {
+		// 	procReplay = Runtime.getRuntime().exec("/bin/bash", null, wd);
+		// }
+		// catch (IOException e) {e.printStackTrace();}
 		
-		if(procReplay != null) 
+		// if(procReplay != null) 
 		{
 			String eventsFilePath = args[0];
 			String splitEventOn = ",";
@@ -100,7 +102,7 @@ public class Translate
 						String[] tokens = null;
 						String splitOn = " ";
 											
-						tokens = temp.split(splitOn);					
+						tokens = temp.replaceAll("\\[(.*?)\\]", "Timestamp").split(splitOn);					
 							
 						inputDeviceType = tokens[1];
 						inputDeviceType = removeColon(inputDeviceType);
@@ -165,15 +167,24 @@ public class Translate
 					int seconds = 0;
 					int microseconds = 0;
 					
-					tokens = line.split(splitOn);					
-					timestampString = tokens[0];
+					// [    1234.567890] /dev/input/event2: 0001 014a 00000001
+					// tokens [1] /dev/input/event2: [2] 0001 [3] 014a [4] 00000001
+					
+					// Extract timestamp from []
+					Matcher m = Pattern.compile("\\[(.*?)\\]").matcher(line);
+					if (m.find()) {
+						timestampString = m.group(1);
+					}
+					
+					tokens = line.replaceAll("\\[(.*?)\\]", "Timestamp").split(splitOn);
 					
 					if(!timestampString.equals("add") && timestampString.length() != 0 && !timestampString.equals("could"))
-					{										
+					{					
+						timestampString = removeSpace(timestampString);					
 						timestampString = removeColon(timestampString);						
 						
 						String[] times = null;											
-						times = timestampString.split("-");
+						times = timestampString.split("\\.");
 						seconds = stringToInt(times[0]);
 						microseconds = stringToInt(times[1]);
 						timestamp = seconds + ((double)microseconds/1000000);
@@ -326,6 +337,11 @@ public class Translate
 	static String removeColon(String original)
 	{
 		return(original.replaceAll(":", ""));
+	}
+
+	static String removeSpace(String original)
+	{
+		return(original.replaceAll("\\s", ""));
 	}
 	
 	static int stringToInt(String s)
